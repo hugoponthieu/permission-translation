@@ -1,6 +1,6 @@
 [package]
 name = "permission-translation"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "A library for translating hexadecimal permission values into human-readable capability sets"
 license = "MIT OR Apache-2.0"
@@ -12,7 +12,10 @@ categories = ["authentication", "data-structures"]
 readme = "README.md"
 documentation = "https://docs.rs/permission-translation"
 
+
 [lib]
+name = "permission_translation"
+path = "src/lib.rs"
 doc = true
 
 [[example]]
