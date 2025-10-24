@@ -16,7 +16,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-permission-translation = "0.1.0"
+permission-translation = "0.3.0"
 ```
 
 ## Quick Start
