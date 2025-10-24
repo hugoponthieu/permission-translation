@@ -39,6 +39,19 @@
 //! assert!(capabilities.contains("ManageServer"));
 //! ```
 //!
+//! ## Examples
+//!
+//! The library comes with several examples demonstrating different use cases:
+//!
+//! - **Quick Start**: `cargo run --example quick_start`
+//!   - Minimal example showing the most common usage patterns
+//!
+//! - **Basic Usage**: `cargo run --example basic_usage`
+//!   - Comprehensive demonstration of all library features
+//!
+//! - **Validation Showcase**: `cargo run --example validation_showcase`
+//!   - Advanced validation features and edge cases
+//!
 //! ## Modules
 //!
 //! - [`models`]: Core type definitions and data structures

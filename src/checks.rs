@@ -151,3 +151,167 @@ pub fn get_sum_hex_value_descriptor(descriptor: &CapabilityDescriptor) -> Capili
     }
     sum_value
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::CapabilityDescriptor;
+
+    fn create_test_descriptor() -> CapabilityDescriptor {
+        let mut descriptor = CapabilityDescriptor::new();
+        descriptor.insert("Read".to_string(), 0x1);
+        descriptor.insert("Write".to_string(), 0x2);
+        descriptor.insert("Execute".to_string(), 0x4);
+        descriptor.insert("Admin".to_string(), 0x8);
+        descriptor
+    }
+
+    #[test]
+    fn test_is_valid_hex_valid_permissions() {
+        let descriptor = create_test_descriptor();
+
+        assert!(is_valid_hex(0x0, &descriptor)); // No permissions
+        assert!(is_valid_hex(0x1, &descriptor)); // Read only
+        assert!(is_valid_hex(0x3, &descriptor)); // Read + Write
+        assert!(is_valid_hex(0x7, &descriptor)); // Read + Write + Execute
+        assert!(is_valid_hex(0xF, &descriptor)); // All permissions
+    }
+
+    #[test]
+    fn test_is_valid_hex_invalid_permissions() {
+        let descriptor = create_test_descriptor();
+
+        assert!(!is_valid_hex(0x10, &descriptor)); // Invalid bit (16)
+        assert!(!is_valid_hex(0x20, &descriptor)); // Invalid bit (32)
+        assert!(!is_valid_hex(0xFF, &descriptor)); // Way too high (255)
+        assert!(!is_valid_hex(0x100, &descriptor)); // Even higher (256)
+    }
+
+    #[test]
+    fn test_is_valid_hex_empty_descriptor() {
+        let descriptor = CapabilityDescriptor::new();
+
+        assert!(is_valid_hex(0x0, &descriptor)); // Empty is valid
+        assert!(!is_valid_hex(0x1, &descriptor)); // Any bit is invalid
+        assert!(!is_valid_hex(0x2, &descriptor)); // Any bit is invalid
+    }
+
+    #[test]
+    fn test_is_valid_hex_single_permission() {
+        let mut descriptor = CapabilityDescriptor::new();
+        descriptor.insert("OnlyPermission".to_string(), 0x4);
+
+        assert!(is_valid_hex(0x0, &descriptor)); // No permissions
+        assert!(is_valid_hex(0x4, &descriptor)); // The one permission
+        assert!(!is_valid_hex(0x1, &descriptor)); // Different bit
+        assert!(!is_valid_hex(0x2, &descriptor)); // Different bit
+        assert!(!is_valid_hex(0x8, &descriptor)); // Higher bit
+    }
+
+    #[test]
+    fn test_get_max_hex_value_descriptor() {
+        let descriptor = create_test_descriptor();
+        assert_eq!(get_max_hex_value_descriptor(&descriptor), 0xF);
+
+        let empty_descriptor = CapabilityDescriptor::new();
+        assert_eq!(get_max_hex_value_descriptor(&empty_descriptor), 0x0);
+
+        let mut single_descriptor = CapabilityDescriptor::new();
+        single_descriptor.insert("Single".to_string(), 0x8);
+        assert_eq!(get_max_hex_value_descriptor(&single_descriptor), 0x8);
+    }
+
+    #[test]
+    fn test_get_sum_hex_value_descriptor() {
+        let descriptor = create_test_descriptor();
+        // Sum: 0x1 + 0x2 + 0x4 + 0x8 = 0xF
+        assert_eq!(get_sum_hex_value_descriptor(&descriptor), 0xF);
+
+        let empty_descriptor = CapabilityDescriptor::new();
+        assert_eq!(get_sum_hex_value_descriptor(&empty_descriptor), 0x0);
+
+        // Test with overlapping bits to show difference between OR and sum
+        let mut overlapping_descriptor = CapabilityDescriptor::new();
+        overlapping_descriptor.insert("Permission1".to_string(), 0x3); // Binary: 11
+        overlapping_descriptor.insert("Permission2".to_string(), 0x1); // Binary: 01 (overlaps)
+
+        // OR: 0x3 | 0x1 = 0x3, Sum: 0x3 + 0x1 = 0x4
+        assert_eq!(get_max_hex_value_descriptor(&overlapping_descriptor), 0x3);
+        assert_eq!(get_sum_hex_value_descriptor(&overlapping_descriptor), 0x4);
+    }
+
+    #[test]
+    fn test_descriptor_integrity_validation() {
+        // Test normal case where OR equals sum (no overlapping bits)
+        let descriptor = create_test_descriptor();
+        let max_value = get_max_hex_value_descriptor(&descriptor);
+        let sum_value = get_sum_hex_value_descriptor(&descriptor);
+        assert_eq!(max_value, sum_value); // Should be equal for power-of-2 values
+        assert!(is_valid_hex(max_value, &descriptor));
+    }
+
+    #[test]
+    fn test_large_permission_system() {
+        let mut large_descriptor = CapabilityDescriptor::new();
+        for i in 0..10 {
+            large_descriptor.insert(format!("Permission{}", i), 1 << i);
+        }
+
+        let max_value = get_max_hex_value_descriptor(&large_descriptor);
+        assert_eq!(max_value, 0x3FF); // 10 bits: 1111111111 = 1023
+
+        // Test valid values
+        assert!(is_valid_hex(0x0, &large_descriptor));
+        assert!(is_valid_hex(0x1, &large_descriptor));
+        assert!(is_valid_hex(0x3FF, &large_descriptor)); // All permissions
+        assert!(is_valid_hex(0x155, &large_descriptor)); // Alternating bits: 101010101
+
+        // Test invalid values
+        assert!(!is_valid_hex(0x400, &large_descriptor)); // Bit 11 (1024)
+        assert!(!is_valid_hex(0x800, &large_descriptor)); // Bit 12 (2048)
+    }
+
+    #[test]
+    fn test_boundary_conditions() {
+        // Test with maximum i32 values
+        let mut max_descriptor = CapabilityDescriptor::new();
+        max_descriptor.insert("MaxPermission".to_string(), 0x40000000); // Bit 30
+
+        assert!(is_valid_hex(0x0, &max_descriptor));
+        assert!(is_valid_hex(0x40000000, &max_descriptor));
+        assert!(!is_valid_hex(0x80000000u32 as i32, &max_descriptor)); // This would be negative
+
+        // Test edge case with negative numbers (though shouldn't happen in practice)
+        let mut negative_descriptor = CapabilityDescriptor::new();
+        negative_descriptor.insert("NegativeTest".to_string(), -1);
+
+        // This tests the robustness of our validation with unexpected inputs
+        assert!(!is_valid_hex(1, &negative_descriptor)); // Should handle gracefully
+    }
+
+    #[test]
+    fn test_zero_permission_value() {
+        let descriptor = create_test_descriptor();
+
+        // Zero should always be valid (represents "no permissions")
+        assert!(is_valid_hex(0x0, &descriptor));
+
+        // Even with empty descriptor
+        let empty_descriptor = CapabilityDescriptor::new();
+        assert!(is_valid_hex(0x0, &empty_descriptor));
+    }
+
+    #[test]
+    fn test_specific_bit_patterns() {
+        let descriptor = create_test_descriptor();
+
+        // Test specific combinations
+        assert!(is_valid_hex(0x5, &descriptor)); // Read + Execute (101)
+        assert!(is_valid_hex(0xA, &descriptor)); // Write + Admin (1010)
+        assert!(is_valid_hex(0xC, &descriptor)); // Execute + Admin (1100)
+
+        // Test invalid patterns
+        assert!(!is_valid_hex(0x11, &descriptor)); // Has invalid bit 5
+        assert!(!is_valid_hex(0x33, &descriptor)); // Has invalid bits 5 and 6
+    }
+}
