@@ -17,6 +17,7 @@ documentation = "https://docs.rs/permission-translation"
 name = "permission_translation"
 path = "src/lib.rs"
 doc = true
+crate-type = ["cdylib", "rlib"]
 
 [[example]]
 name = "basic_usage"
@@ -30,4 +31,26 @@ path = "examples/quick_start.rs"
 name = "validation_showcase"
 path = "examples/validation_showcase.rs"
 
+[[example]]
+name = "wasm_example"
+path = "examples/wasm_example.rs"
+
 [dependencies]
+wasm-bindgen = { version = "0.2.104", optional = true }
+serde = { version = "1.0", features = ["derive"], optional = true }
+serde-wasm-bindgen = { version = "0.6", optional = true }
+
+[dependencies.web-sys]
+version = "0.3"
+optional = true
+features = [
+  "console",
+]
+
+[dependencies.js-sys]
+version = "0.3"
+optional = true
+
+[features]
+default = []
+wasm = ["wasm-bindgen", "serde", "serde-wasm-bindgen", "web-sys", "js-sys"]

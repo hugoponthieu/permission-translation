@@ -8,6 +8,12 @@ use crate::models::{
     CapabilityDescriptor, CapabilityHexUnitSet, CapabilityName, CapabilityNameSet, CapilityHexValue,
 };
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(feature = "wasm")]
+use js_sys;
+
 /// Represents a role with its associated capabilities and permission value.
 ///
 /// This struct combines a capability descriptor (which defines available permissions)
@@ -451,5 +457,57 @@ mod tests {
         assert!(role.to_hex_set().is_empty());
         assert!(role.to_name_set().is_empty());
         assert!(!role.has_capability(&"AnyCapability".to_string()));
+    }
+}
+
+// WASM-compatible wrapper for RoleCapability
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub struct JsRoleCapability {
+    #[wasm_bindgen(skip)]
+    pub inner: RoleCapability,
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+impl JsRoleCapability {
+    #[wasm_bindgen(constructor)]
+    pub fn new(
+        descriptor: &crate::models::JsCapabilityDescriptor,
+        hex_value: CapilityHexValue,
+    ) -> JsRoleCapability {
+        JsRoleCapability {
+            inner: RoleCapability::new(descriptor.inner.clone(), hex_value),
+        }
+    }
+
+    #[wasm_bindgen(getter = hexValue)]
+    pub fn hex_value(&self) -> CapilityHexValue {
+        self.inner.hex_value
+    }
+
+    #[wasm_bindgen]
+    pub fn has_capability(&self, capability_name: &str) -> bool {
+        self.inner.has_capability(&capability_name.to_string())
+    }
+
+    #[wasm_bindgen]
+    pub fn get_capability_names(&self) -> js_sys::Array {
+        let name_set = self.inner.to_name_set();
+        let array = js_sys::Array::new();
+        for name in name_set {
+            array.push(&JsValue::from_str(&name));
+        }
+        array
+    }
+
+    #[wasm_bindgen]
+    pub fn get_capability_hex_values(&self) -> js_sys::Array {
+        let hex_set = self.inner.to_hex_set();
+        let array = js_sys::Array::new();
+        for &hex_value in &hex_set {
+            array.push(&JsValue::from_f64(hex_value as f64));
+        }
+        array
     }
 }

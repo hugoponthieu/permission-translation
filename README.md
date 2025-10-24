@@ -152,6 +152,111 @@ This will run both unit tests and documentation tests to ensure all examples com
 
 This project is licensed under the MIT OR Apache-2.0 license.
 
+## WebAssembly (WASM) Support
+
+The library includes optional WebAssembly support for use in web browsers and Node.js environments. The WASM bindings expose the same functionality without duplicating code.
+
+### Building for WASM
+
+```bash
+# Install wasm-pack if you haven't already
+cargo install wasm-pack
+
+# Build for web browsers
+wasm-pack build --target web --features wasm
+
+# Build for Node.js
+wasm-pack build --target nodejs --features wasm
+
+# Build for bundlers (webpack, etc.)
+wasm-pack build --target bundler --features wasm
+```
+
+### WASM API
+
+When the `wasm` feature is enabled, the library exposes WASM-compatible types:
+
+- `JsCapabilityDescriptor` - WASM wrapper for capability descriptors
+- `JsRoleCapability` - WASM wrapper for role capabilities
+- `js_is_valid_hex()` - WASM function for permission validation
+- `js_get_max_hex_value_descriptor()` - WASM function for max value calculation
+
+### JavaScript Usage Example
+
+```javascript
+import init, { 
+    JsCapabilityDescriptor, 
+    JsRoleCapability, 
+    js_is_valid_hex 
+} from './pkg/permission_translation.js';
+
+async function main() {
+    // Initialize the WASM module
+    await init();
+
+    // Create a capability descriptor
+    const descriptor = new JsCapabilityDescriptor();
+    descriptor.insert("Read", 0x1);
+    descriptor.insert("Write", 0x2);
+    descriptor.insert("Execute", 0x4);
+    descriptor.insert("Admin", 0x8);
+
+    // Create a role with Read + Write permissions
+    const role = new JsRoleCapability(descriptor, 0x3);
+
+    // Check capabilities
+    console.log("Can read:", role.has_capability("Read"));        // true
+    console.log("Can write:", role.has_capability("Write"));      // true
+    console.log("Can execute:", role.has_capability("Execute"));  // false
+    console.log("Is admin:", role.has_capability("Admin"));       // false
+
+    // Get all capabilities
+    const capabilities = role.get_capability_names();
+    console.log("All capabilities:", Array.from(capabilities));
+
+    // Validate permission values
+    console.log("0x3 is valid:", js_is_valid_hex(0x3, descriptor));  // true
+    console.log("0x20 is valid:", js_is_valid_hex(0x20, descriptor)); // false
+}
+
+main();
+```
+
+### Node.js Usage
+
+```javascript
+const { 
+    JsCapabilityDescriptor, 
+    JsRoleCapability, 
+    js_is_valid_hex 
+} = require('./pkg/permission_translation');
+
+// Create descriptor from JavaScript object
+const descriptorData = {
+    "SendMessage": 0x1,
+    "ManageChannel": 0x2,
+    "ManageServer": 0x4,
+    "Administrator": 0x8
+};
+
+const descriptor = JsCapabilityDescriptor.from_js_object(descriptorData);
+const role = new JsRoleCapability(descriptor, 0x3);
+
+console.log("Role capabilities:", Array.from(role.get_capability_names()));
+```
+
+### WASM Example
+
+Run the WASM example to see all features in action:
+
+```bash
+# Native version (shows the same functionality)
+cargo run --example wasm_example
+
+# WASM version (requires wasm-pack)
+cargo run --example wasm_example --features wasm
+```
+
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.

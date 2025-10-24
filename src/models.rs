@@ -126,6 +126,66 @@ pub type CapabilityHexUnitSet = HashSet<CapabilityHexUnitValue>;
 /// ```
 pub type CapabilityNameSet = HashSet<CapabilityName>;
 
+// WASM-compatible types and conversions
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
+#[cfg(feature = "wasm")]
+use serde::{Deserialize, Serialize};
+
+/// WASM-compatible wrapper for CapabilityDescriptor
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+#[derive(Serialize, Deserialize, Clone)]
+pub struct JsCapabilityDescriptor {
+    #[wasm_bindgen(skip)]
+    pub inner: CapabilityDescriptor,
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+impl JsCapabilityDescriptor {
+    #[wasm_bindgen(constructor)]
+    pub fn new() -> JsCapabilityDescriptor {
+        JsCapabilityDescriptor {
+            inner: CapabilityDescriptor::new(),
+        }
+    }
+
+    #[wasm_bindgen]
+    pub fn insert(&mut self, name: String, value: CapabilityHexUnitValue) {
+        self.inner.insert(name, value);
+    }
+
+    #[wasm_bindgen]
+    pub fn get(&self, name: &str) -> Option<CapabilityHexUnitValue> {
+        self.inner.get(name).copied()
+    }
+
+    #[wasm_bindgen]
+    pub fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    #[wasm_bindgen(getter = isEmpty)]
+    pub fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
+    #[wasm_bindgen]
+    pub fn from_js_object(obj: &JsValue) -> Result<JsCapabilityDescriptor, JsValue> {
+        let map: CapabilityDescriptor = serde_wasm_bindgen::from_value(obj.clone())
+            .map_err(|e| JsValue::from_str(&format!("Failed to parse descriptor: {}", e)))?;
+        Ok(JsCapabilityDescriptor { inner: map })
+    }
+
+    #[wasm_bindgen]
+    pub fn to_js_object(&self) -> Result<JsValue, JsValue> {
+        serde_wasm_bindgen::to_value(&self.inner)
+            .map_err(|e| JsValue::from_str(&format!("Failed to serialize descriptor: {}", e)))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

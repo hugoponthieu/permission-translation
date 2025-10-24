@@ -15,6 +15,9 @@
 //! 2. **Valid Bits Only**: Permission values can only have bits set that are defined in the descriptor
 //! 3. **Maximum Permission**: Permission values cannot exceed the maximum allowed by the descriptor
 
+#[cfg(feature = "wasm")]
+use wasm_bindgen::prelude::*;
+
 use crate::models::{CapabilityDescriptor, CapilityHexValue};
 
 /// Validates a hexadecimal permission value against a capability descriptor.
@@ -66,6 +69,7 @@ use crate::models::{CapabilityDescriptor, CapilityHexValue};
 /// ## Maximum Permission Check
 /// Ensures the permission value doesn't exceed the theoretical maximum (all permissions combined).
 /// This prevents values that might be mathematically valid but exceed intended limits.
+
 pub fn is_valid_hex(value: CapilityHexValue, descriptor: &CapabilityDescriptor) -> bool {
     // Combine all unit values from the descriptor
     // to form a mask of valid bits.
@@ -150,6 +154,32 @@ pub fn get_sum_hex_value_descriptor(descriptor: &CapabilityDescriptor) -> Capili
         sum_value += unit_value;
     }
     sum_value
+}
+
+// WASM-compatible wrapper functions
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub fn js_is_valid_hex(
+    value: CapilityHexValue,
+    descriptor: &crate::models::JsCapabilityDescriptor,
+) -> bool {
+    is_valid_hex(value, &descriptor.inner)
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub fn js_get_max_hex_value_descriptor(
+    descriptor: &crate::models::JsCapabilityDescriptor,
+) -> CapilityHexValue {
+    get_max_hex_value_descriptor(&descriptor.inner)
+}
+
+#[cfg(feature = "wasm")]
+#[wasm_bindgen]
+pub fn js_get_sum_hex_value_descriptor(
+    descriptor: &crate::models::JsCapabilityDescriptor,
+) -> CapilityHexValue {
+    get_sum_hex_value_descriptor(&descriptor.inner)
 }
 
 #[cfg(test)]

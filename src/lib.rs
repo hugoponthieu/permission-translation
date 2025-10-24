@@ -61,3 +61,13 @@
 pub mod checks;
 pub mod models;
 pub mod role_capability;
+
+// Re-export WASM-compatible types when wasm feature is enabled
+#[cfg(feature = "wasm")]
+pub use checks::{
+    js_get_max_hex_value_descriptor, js_get_sum_hex_value_descriptor, js_is_valid_hex,
+};
+#[cfg(feature = "wasm")]
+pub use models::JsCapabilityDescriptor;
+#[cfg(feature = "wasm")]
+pub use role_capability::JsRoleCapability;
