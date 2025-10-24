@@ -10,6 +10,10 @@ homepage = "https://github.com/hugoponthieu/permission-translation"
 keywords = ["permissions", "capabilities", "hex", "translation", "security"]
 categories = ["authentication", "data-structures"]
 readme = "README.md"
+documentation = "https://docs.rs/permission-translation"
+
+[lib]
+doc = true
 
 [[example]]
 name = "basic_usage"
